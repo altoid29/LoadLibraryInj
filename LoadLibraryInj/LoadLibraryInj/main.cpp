@@ -136,6 +136,9 @@ int main()
         delete[] data;
         return 0;
     }
+    
+     // No longer need buffer.
+    delete[] data;
 
     // Get the process id of a process by it's name and check if it's valid.
     DWORD processId = GetProcIdByName(selectedProcess.c_str());
@@ -183,7 +186,13 @@ int main()
     }
 
     // Write the DLL name with the size to the process memory.
-    WriteProcessMemory(hProcess, address, selectedFile.c_str(), selectedFile.size(), nullptr);
+    if (!WriteProcessMemory(hProcess, address, selectedFile.c_str(), selectedFile.size(), nullptr))
+    {
+        printf("Failed to call WriteProcessMemory on process id %i\n.", processId);
+        CloseHandle(hProcess);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        return 0;
+    }
 
     // Create a remote thread for your module.
     HANDLE hThread = CreateRemoteThread(hProcess, nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(LoadLibraryA), address, 0, 0);
@@ -194,11 +203,20 @@ int main()
         std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         return 0;
     }
+    
+    // Check if the thread state is valid.
+    if (WaitForSingleObject(hThread, INFINITE) != WAIT_OBJECT_0 /*The state of the specified object is signaled*/)
+    {
+        printf("Failed to wait for load library ThreadObject.\n");
+        CloseHandle(hProcess);
+        CloseHandle(hThread);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        return 0;
+    }
 
     // Cleanup.
-    CloseHandle(hThread);
     CloseHandle(hProcess);
-    delete[] data;
+    CloseHandle(hThread);
 
     std::string toTrim = selectedFile;
     size_t lastSlash = toTrim.find_last_of("\\") + 1;
