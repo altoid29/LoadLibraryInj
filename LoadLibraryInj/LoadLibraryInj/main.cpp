@@ -136,8 +136,8 @@ int main()
         delete[] data;
         return 0;
     }
-    
-     // No longer need buffer.
+
+    // No longer need buffer.
     delete[] data;
 
     // Get the process id of a process by it's name and check if it's valid.
@@ -203,11 +203,12 @@ int main()
         std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         return 0;
     }
-    
+
     // Check if the thread state is valid.
     if (WaitForSingleObject(hThread, INFINITE) != WAIT_OBJECT_0 /*The state of the specified object is signaled*/)
     {
         printf("Failed to wait for load library ThreadObject.\n");
+        VirtualFreeEx(hProcess, address, 0, MEM_RELEASE);
         CloseHandle(hProcess);
         CloseHandle(hThread);
         std::this_thread::sleep_for(std::chrono::milliseconds(5000));
